@@ -3,6 +3,7 @@ package resp_parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // $bulk string--> $5\r\nhello\r\n
@@ -155,4 +156,45 @@ func ParseAll(raw string) ([]parsedElement, []byte, error) {
 
 	}
 	return parsedElements, leftover, nil
+}
+
+func ParseVerbose(raw string) (string, error){
+	parsedElements, leftover, err := ParseAll(raw)
+	if err !=nil{
+		return "", err
+	}
+	if len(leftover) != 0 {
+		return "", fmt.Errorf("leftover bytes: %d", len(leftover))
+	}
+	var result string
+	for i, element := range parsedElements {
+		if element.Type == "array" {
+			result += fmt.Sprintf("%d Type: %s, Size: %d\n", i, element.Type, element.Size)
+			nested, err := parse_array_verbose(element, 0)
+			if err != nil {
+				return "", err
+			}
+			result += nested
+		}else{
+			result += fmt.Sprintf("%d Type: %s, Value: %v\n", i, element.Type, element.Value)
+		}
+	}
+	return result, nil
+}
+
+func parse_array_verbose(array parsedElement, level int) (string, error) {
+	var result string
+	for i, element := range array.Value.([]parsedElement) {
+		if element.Type == "array" {
+			result += fmt.Sprintf("%s %d Type: %s, Size: %d\n", strings.Repeat("	", level+1),i, element.Type, element.Size)
+			nested, err := parse_array_verbose(element, level+1)
+			if err != nil {
+				return "", err
+			}
+			result += nested
+		}else{
+			result += fmt.Sprintf("%s%d Type: %s, Value: %v\n",strings.Repeat("	 ", level+1), i, element.Type, element.Value)
+		}
+	}
+	return result, nil
 }
