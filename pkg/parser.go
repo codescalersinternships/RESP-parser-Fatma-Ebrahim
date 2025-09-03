@@ -27,11 +27,19 @@ type parsedElement struct {
 
 
 func parse_array(raw []byte) (parsedElement, []byte, error) {
-	arraySize, err := strconv.Atoi(string(raw[0]))
+	arraySizeOffset := get_offset(raw)
+	arraySize, err := strconv.Atoi(string(raw[:arraySizeOffset]))
 	if err != nil{
 		return parsedElement{}, raw, err
 	}
-	raw = raw[3:]
+	if arraySize == -1 {
+		return parsedElement{
+			Type:  "array",
+			Value: nil,
+			Size:  arraySize,
+		}, raw[arraySizeOffset+2:], nil
+	}
+	raw = raw[arraySizeOffset+2:]
 	arrayElements := make([]parsedElement, 0)
 	for i := 0; i < arraySize; i++ {
 		parsed, leftover, err := parse_all(raw)
@@ -46,16 +54,26 @@ func parse_array(raw []byte) (parsedElement, []byte, error) {
 		Value: arrayElements,
 		Size:  len(arrayElements),
 	}
+	fmt.Println(parsed)
 	return parsed, raw, nil
 }
 
 func parse_bulk_string(raw []byte) (parsedElement, []byte, error) {
-	bulkSize, err := strconv.Atoi(string(raw[0]))
+	bulkSizeOffset := get_offset(raw)
+	bulkSize, err := strconv.Atoi(string(raw[:bulkSizeOffset]))
 	if err != nil{
 		return parsedElement{}, raw, err
 	}
+	
+	if bulkSize == -1 {
+		return parsedElement{
+			Type:  "bulk",
+			Value: nil,
+			Size:  bulkSize,
+		}, raw[bulkSizeOffset+2:], nil
+	}
 	bulkString := raw[3 : 3+bulkSize]
-	raw = raw[5+bulkSize:]
+	raw = raw[bulkSizeOffset+4+bulkSize:]
 	parsed := parsedElement{
 		Type:  "bulk",
 		Value: string(bulkString),
@@ -120,6 +138,9 @@ func parse_error(raw []byte) (parsedElement, []byte, error) {
 }
 
 func parse_all(raw []byte) (parsedElement, []byte, error) {
+	if len(raw) == 0 {
+		return parsedElement{}, raw, fmt.Errorf("No data to parse")
+	}
 	typeByte := raw[0]
 	raw = raw[1:]
 	switch typeByte {
@@ -155,6 +176,7 @@ func ParseAll(raw string) ([]parsedElement, []byte, error) {
 		parsedElements = append(parsedElements, parsed)
 
 	}
+	// fmt.Println(parsedElements)
 	return parsedElements, leftover, nil
 }
 

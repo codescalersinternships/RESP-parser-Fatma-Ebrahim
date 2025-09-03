@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	parser "github.com/codescalersinternships/RESP-parser-Fatma-Ebrahim.git/pkg"
 )
 
@@ -15,9 +14,12 @@ func main() {
 	raw := "*3\r\n$3\r\nset\r\n$6\r\nleader\r\n$7\r\nCharlie\r\n"
 	raw += "*4\r\n$3\r\nset\r\n$8\r\nfollower\r\n*2\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n:1000\r\n"	
 
+	raw = "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n"
+	
+
 	parsed, leftover, err := parser.ParseAll(raw)
 	if err != nil {
-		log.Fatalf("Error parsing: %v", err)
+		fmt.Printf("Error parsing: %v\n", err)
 	}
 
 	if len(leftover) != 0 {
@@ -30,7 +32,7 @@ func main() {
 
 	parsedVerbose, err := parser.ParseVerbose(raw)
 	if err != nil {
-		log.Fatalf("Error parsing verbose: %v", err)
+		fmt.Printf("Error parsing verbose: %v\n", err)
 	}
-	fmt.Println(parsedVerbose)
+	fmt.Print(parsedVerbose)
 }
