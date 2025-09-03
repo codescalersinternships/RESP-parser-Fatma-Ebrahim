@@ -20,45 +20,48 @@ import (
 type parsedElement struct {
 	Type  string
 	Value interface{}
+	Size  int
+}
+
+
+
+func parse_array(raw []byte) (parsedElement, []byte, error) {
+	arraySize, err := strconv.Atoi(string(raw[0]))
+	if err != nil{
+		return parsedElement{}, raw, err
+	}
+	raw = raw[3:]
+	arrayElements := make([]parsedElement, 0)
+	for i := 0; i < arraySize; i++ {
+		parsed, leftover, err := parse_all(raw)
+		if err != nil {
+			return parsedElement{}, raw, err
+		}
+		arrayElements = append(arrayElements, parsed)
+		raw = leftover
+	}
+	parsed := parsedElement{
+		Type:  "array",
+		Value: arrayElements,
+		Size:  len(arrayElements),
+	}
+	return parsed, raw, nil
 }
 
 func parse_bulk_string(raw []byte) (parsedElement, []byte, error) {
-	fmt.Println("received bulk string", string(raw))
 	bulkSize, err := strconv.Atoi(string(raw[0]))
 	if err != nil{
 		return parsedElement{}, raw, err
 	}
 	bulkString := raw[3 : 3+bulkSize]
 	raw = raw[5+bulkSize:]
-	parsedElement := parsedElement{
+	parsed := parsedElement{
 		Type:  "bulk",
 		Value: string(bulkString),
+		Size:  bulkSize,
 	}
-	return parsedElement, raw, nil
+	return parsed, raw, nil
 
-}
-
-func parse_array(raw []byte) (parsedElement, []byte, error) {
-	fmt.Println("recieved array", string(raw))
-	arraySize, err := strconv.Atoi(string(raw[0]))
-	if err != nil{
-		return parsedElement{}, raw, err
-	}
-	raw = raw[3:]
-	var arrayElements []parsedElement
-	for i := 0; i < arraySize; i++ {
-		parsed, left, err := ParseAll(raw)
-		if err != nil {
-			return parsedElement{}, raw, err
-		}
-		arrayElements = append(arrayElements, parsed)
-		raw = left
-	}
-	parsedElement := parsedElement{
-		Type:  "array",
-		Value: arrayElements,
-	}
-	return parsedElement, raw, nil
 }
 func get_offset(raw []byte) int {
 	for i := 0; i < len(raw); i++ {
@@ -70,21 +73,20 @@ func get_offset(raw []byte) int {
 }
 
 func parse_string(raw []byte) (parsedElement, []byte, error) {
-	fmt.Println("received string", string(raw))
 	offset := get_offset(raw)
 	if offset == -1 {
 		return parsedElement{}, raw, fmt.Errorf("invalid string")
 	}
-	parsedElement := parsedElement{
+	parsed := parsedElement{
 		Type:  "string",
 		Value: string(raw[:offset]),
+		Size:  offset,
 	}
 	raw = raw[offset+2:]
-	return parsedElement, raw, nil
+	return parsed, raw, nil
 }
 
 func parse_integer(raw []byte) (parsedElement, []byte, error) {
-	fmt.Println("received integer", string(raw))
 	offset := get_offset(raw)
 		if offset == -1 {
 		return parsedElement{}, raw, fmt.Errorf("invalid integer")
@@ -93,42 +95,64 @@ func parse_integer(raw []byte) (parsedElement, []byte, error) {
 	if err != nil {
 		return parsedElement{}, raw, err
 	}
-	parsedElement := parsedElement{
+	parsed := parsedElement{
 		Type:  "integer",
 		Value: value,
+		Size:  offset,
 	}
 	raw = raw[offset+2:]
-	return parsedElement, raw, err
+	return parsed, raw, err
 }
 
 func parse_error(raw []byte) (parsedElement, []byte, error) {
-	fmt.Println("received error", string(raw))
 	offset := get_offset(raw)
 	if offset == -1 {
 		return parsedElement{}, raw, fmt.Errorf("invalid error")
 	}
-	parsedElement := parsedElement{
+	parsed := parsedElement{
 		Type:  "error",
 		Value: string(raw[:offset]),
+		Size:  offset,
 	}
-	fmt.Println("parsed error:", string(raw[:offset]))
 	raw = raw[offset+2:]
-	return parsedElement, raw, nil
+	return parsed, raw, nil
 }
 
-func ParseAll(raw []byte) (parsedElement, []byte, error) {
+func parse_all(raw []byte) (parsedElement, []byte, error) {
 	typeByte := raw[0]
+	raw = raw[1:]
 	switch typeByte {
 	case '$':
-		return parse_bulk_string(raw[1:])
+		return parse_bulk_string(raw)
 	case '*':
-		return parse_array(raw[1:])
+		return parse_array(raw)
 	case '+':
-		return parse_string(raw[1:])
+		return parse_string(raw)
 	case ':':
-		return parse_integer(raw[1:])
+		return parse_integer(raw)
 	case '-':
-		return parse_error(raw[1:])
+		return parse_error(raw)
 	}
 	return parsedElement{}, raw, nil
+}
+
+func ParseAll(raw string) ([]parsedElement, []byte, error) {
+	rawBytes := []byte(raw)
+	parsed, leftover, err := parse_all(rawBytes)
+	if err != nil {
+		return nil, rawBytes, err
+	}
+	
+	parsedElements := make([]parsedElement, 0)
+	parsedElements = append(parsedElements, parsed)
+
+	for len(leftover) != 0 {
+		parsed, leftover, err = parse_all(leftover)
+		if err != nil {
+			return nil, rawBytes, err
+		}
+		parsedElements = append(parsedElements, parsed)
+
+	}
+	return parsedElements, leftover, nil
 }

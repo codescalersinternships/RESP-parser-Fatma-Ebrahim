@@ -9,12 +9,20 @@ import (
 func main() {
 
 	// "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n"
-	raw := []byte(":-100\r\n")
-	parsed, left, err := parser.ParseAll(raw)
+	// "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n:1000\r\n"
+
+	raw := "*3\r\n$3\r\nset\r\n$6\r\nleader\r\n$7\r\nCharlie\r\n"
+	raw += "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n"	
+	parsed, leftover, err := parser.ParseAll(raw)
 	if err != nil {
 		log.Fatalf("Error parsing: %v", err)
-		return
 	}
-	fmt.Println("parsed:", parsed)
-	fmt.Println("leftover:", len(left))
+
+	if len(leftover) != 0 {
+		fmt.Println("leftover:", len(leftover))
+	}
+
+	for i, element := range parsed {
+		fmt.Printf("Element %d: Type: %s, Value: %v, Size: %d\n", i, element.Type, element.Value, element.Size)
+	}
 }

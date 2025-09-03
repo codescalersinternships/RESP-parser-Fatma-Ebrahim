@@ -6,20 +6,93 @@ import (
 
 func TestParseAll(t *testing.T) {
 	t.Run("test array with bulk string elements", func(t *testing.T) {
-		raw := []byte("*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n")
-		parsed, leftover , err:= ParseAll(raw)
+		raw := "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n"
+		parsed, leftover, err := ParseAll(raw)
 		if err != nil {
-			t.Error("Error in ParseAll")
+			t.Errorf("Error in ParseAll: %v", err)
 		}
+
 		if len(leftover) != 0 {
-			t.Error("Error in ParseAll")
+			t.Errorf("Expected 0 leftover bytes got %d", len(leftover))
 		}
-		if parsed.Type != "array" {
-			t.Errorf("Expected array type got %s", parsed.Type)
+
+		if len(parsed) != 1 {
+			t.Errorf("Expected 1 element got %d", len(parsed))
 		}
-		if len(parsed.Value.([]parsedElement)) != 3 {
-			t.Errorf("Expected 3 elements in array got %d", len(parsed.Value.([]parsedElement)))
+
+		parsedElement := parsed[0]
+		if parsedElement.Type != "array" {
+			t.Errorf("Expected array type got %s", parsedElement.Type)
+		}
+		if parsedElement.Size != 3 {
+			t.Errorf("Expected 3 elements in array got %d", parsedElement.Size)
 		}
 	})
 
+	t.Run("test strings", func(t *testing.T) {
+		raw := "+OK\r\n"
+		parsed, leftover, err := ParseAll(raw)
+		if err != nil {
+			t.Errorf("Error in ParseAll:%v", err)
+		}
+		if len(leftover) != 0 {
+			t.Errorf("Expected 0 leftover bytes got %d", len(leftover))
+		}
+		if len(parsed) != 1 {
+			t.Errorf("Expected 1 element got %d", len(parsed))
+		}
+
+		parsedElement := parsed[0]
+		if parsedElement.Type != "string" {
+			t.Errorf("Expected string type got %s", parsedElement.Type)
+		}
+		if parsedElement.Value != "OK" {
+			t.Errorf("Expected string value 'OK' got %s", parsedElement.Value)
+		}
+
+	})
+
+	t.Run("test integers", func(t *testing.T) {
+		raw := ":1000\r\n"
+		parsed, leftover, err := ParseAll(raw)
+		if err != nil {
+			t.Errorf("Error in ParseAll:%v", err)
+		}
+		if len(leftover) != 0 {
+			t.Errorf("Expected 0 leftover bytes got %d", len(leftover))
+		}
+				if len(parsed) != 1 {
+			t.Errorf("Expected 1 element got %d", len(parsed))
+		}
+
+		parsedElement := parsed[0]
+		if parsedElement.Type != "integer" {
+			t.Errorf("Expected integer type got %s", parsedElement.Type)
+		}
+		if parsedElement.Value != 1000 {
+			t.Errorf("Expected integer value 1000 got %d", parsedElement.Value)
+		}
+	})
+
+	t.Run("test negative integers", func(t *testing.T) {
+		raw := ":-100\r\n"
+		parsed, leftover, err := ParseAll(raw)
+		if err != nil {
+			t.Errorf("Error in ParseAll:%v", err)
+		}
+		if len(leftover) != 0 {
+			t.Errorf("Expected 0 leftover bytes got %d", len(leftover))
+		}
+		if len(parsed) != 1 {
+			t.Errorf("Expected 1 element got %d", len(parsed))
+		}
+
+		parsedElement := parsed[0]
+		if parsedElement.Type != "integer" {
+			t.Errorf("Expected integer type got %s", parsedElement.Type)
+		}
+		if parsedElement.Value != -100 {
+			t.Errorf("Expected integer value -100 got %d", parsedElement.Value)
+		}
+	})
 }
