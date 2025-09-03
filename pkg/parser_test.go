@@ -1,6 +1,7 @@
 package resp_parser
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -256,4 +257,66 @@ func TestParseAll(t *testing.T) {
 
 	})
 
+}
+
+func TestStringToRESP(t *testing.T) {
+	t.Run("test string to RESP bulk string", func(t *testing.T) {
+		input := "hello"
+		expected := "$5\r\nhello\r\n"
+		got := StringToRESPBulkString(input)
+		if got != expected {
+			t.Errorf("Expected %q got %q", expected, got)
+		}
+	})
+
+	t.Run("test string to RESP string", func(t *testing.T) {
+		input := "hello"
+		expected := "+hello\r\n"
+		got := StringToRESPString(input)
+		if got != expected {
+			t.Errorf("Expected %q got %q", expected, got)
+		}
+	})
+}
+
+func TestIntegerToRESP(t *testing.T) {
+	t.Run("test integer to RESP integer", func(t *testing.T) {
+		input := 123
+		expected := ":123\r\n"
+		got := IntegerToRESPInteger(input)
+		if got != expected {
+			t.Errorf("Expected %q got %q", expected, got)
+		}
+	})
+
+	t.Run("test negative integer to RESP integer", func(t *testing.T) {
+		input := -123
+		expected := ":-123\r\n"
+		got := IntegerToRESPInteger(input)
+		if got != expected {
+			t.Errorf("Expected %q got %q", expected, got)
+		}
+	})
+}
+
+func TestErrorToRESP(t *testing.T) {
+	t.Run("test error to RESP error", func(t *testing.T) {
+		input := fmt.Errorf("Error message")
+		expected := "-Error message\r\n"
+		got := ErrorToRESPError(input)
+		if got != expected {
+			t.Errorf("Expected %q got %q", expected, got)
+		}
+	})
+}
+
+func TestArrayToRESP(t *testing.T){
+	t.Run("test array to RESP array", func(t *testing.T) {
+		input := []interface{}{"item1", "item2", "item3",1 ,2}
+		expected := "*5\r\n+item1\r\n+item2\r\n+item3\r\n:1\r\n:2\r\n"
+		got := ArrayToRESPArray(input)
+		if got != expected {
+			t.Errorf("Expected %q got %q", expected, got)
+		}
+	})
 }

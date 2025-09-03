@@ -3,8 +3,20 @@ This repository contains an implementation of a Go library for parsing Redis Ser
 
 ## Functions
 
-- `ParseAll(raw string)`: Parses all RESP elements from the raw string.
-- `ParseVerbose(raw string)`: Parses RESP string and return a verbose representation of the parsed elements.
+### `ParseAll(raw string) ([]parsedElement, []byte, error)`
+Parses RESP elements from the raw string and return an array of the parsed elements.
+### `ParseVerbose(raw string) (string, error)` 
+Parses RESP elements and return a verbose string of the parsed elements.
+### `StringToRESPBulkString(s string) (string, error)`
+Encodes a string to a RESP bulk string.
+### `StringToRESPString(s string) (string, error)`
+Encodes a string to a RESP simple string.
+### `ErrorToRESPError(err error) (string, error)`
+Encodes an error to a RESP error.
+### `IntegerToRESPInteger(i int) (string, error)`
+Encodes an integer to a RESP integer.
+### `ArrayToRESPArray(arr []interface{}) (string, error)`
+Encodes an array to a RESP array.
 
 ## How to Use:
 ### Step 1: Install the library using `go get`
@@ -24,12 +36,16 @@ package main
 
 import (
 	"fmt"
-	parser "github.com/codescalersinternships/RESP-parser-Fatma-Ebrahim"
+	parser "github.com/codescalersinternships/RESP-parser-Fatma-Ebrahim/pkg"
 )
 
 func main() {
-	raw := "*3\r\n$3\r\nset\r\n$6\r\nleader\r\n$7\r\nCharlie\r\n"
-	parsedVerbose, _ := parser.ParseVerbose(raw)
+	respBulkString := "$5\r\nhello\r\n"
+	parsedVerbose, _ := parser.ParseVerbose(respBulkString)
 	fmt.Print(parsedVerbose)
+
+    normalString := "hello" 
+	respString:=parser.StringToRESPString(normalString)
+	fmt.Println(respString)
 }
 ```

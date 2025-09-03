@@ -108,7 +108,6 @@ func parse_error(raw []byte) (parsedElement, []byte, error) {
 	return parsed, raw, nil
 }
 
-
 // parse_integer parses integers in RESP format
 func parse_integer(raw []byte) (parsedElement, []byte, error) {
 	offset := get_offset(raw)
@@ -128,7 +127,6 @@ func parse_integer(raw []byte) (parsedElement, []byte, error) {
 	return parsed, raw, err
 }
 
-
 // get_offset is a helper function to get the offset of the CRLF sequence of the raw bytes
 func get_offset(raw []byte) int {
 	for i := 0; i < len(raw); i++ {
@@ -139,7 +137,7 @@ func get_offset(raw []byte) int {
 	return -1
 }
 
-// parse_all parses a single RESP element such as string, integer, bulkstring, array and error of the raw bytes
+// parse_all is a parses a single RESP element such as string, integer, bulkstring, array and error of the raw bytes
 func parse_all(raw []byte) (parsedElement, []byte, error) {
 	if len(raw) == 0 {
 		return parsedElement{}, raw, fmt.Errorf("No data to parse")
@@ -183,8 +181,6 @@ func ParseAll(raw string) ([]parsedElement, []byte, error) {
 	return parsedElements, leftover, nil
 }
 
-
-
 // ParseVerbose parses RESP string using ParseAll function and return a verbose representation of the parsed elements.
 func ParseVerbose(raw string) (string, error){
 	parsedElements, leftover, err := ParseAll(raw)
@@ -227,3 +223,52 @@ func parse_array_verbose(array parsedElement, level int) (string, error) {
 	}
 	return result, nil
 }
+
+
+
+// StringToRESPBulkString converts string to RESP bulk string
+func StringToRESPBulkString(s string) string {
+	return fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)
+}
+
+// StringToRESPString converts string to RESP string
+func StringToRESPString(s string) string {
+	return fmt.Sprintf("+%s\r\n", s)
+}
+
+// ErrorToRESPError converts error to RESP error
+func ErrorToRESPError(e error) string {
+	return fmt.Sprintf("-%s\r\n", e.Error())
+}
+
+// IntegerToRESPInteger converts integer to RESP integer
+func IntegerToRESPInteger(i int) string {
+	return fmt.Sprintf(":%d\r\n", i)
+}
+
+// ArrayToRESPArray converts array to RESP array
+func ArrayToRESPArray(arr []interface{}) string {
+	var result string
+	for _, element := range arr {
+		result += encode_all(element)
+	}
+	return fmt.Sprintf("*%d\r\n%s", len(arr), result)
+}
+
+// encode_all encodes a single element such as string, integer, bulkstring, array and error into RESP format.
+func encode_all(element interface{}) string {
+	switch elementType := element.(type) {
+	case string:
+		return StringToRESPString(elementType)
+	case error:
+		return ErrorToRESPError(elementType)
+	case int:
+		return IntegerToRESPInteger(elementType)
+	case []interface{}:
+		return ArrayToRESPArray(elementType)
+	default:
+		return ""
+	}
+}
+
+
