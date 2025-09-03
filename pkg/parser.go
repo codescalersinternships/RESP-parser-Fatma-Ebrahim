@@ -6,17 +6,13 @@ import (
 	"strings"
 )
 
+// Examples of the supported RESP data types 
 // $bulk string--> $5\r\nhello\r\n
 // *array   -----> *2\r\n $5\r\nhello\r\n $5\r\nworld\r\n
 // +string  -----> +OK\r\n
 // :integer -----> :1000\r\n
-// -error
+// -error   -----> -Error message\r\n
 
-// raw += "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n"
-// Read Array
-//   #0 BulkString, value: 'set'
-//   #1 BulkString, value: 'leader'
-//   #2 BulkString, value: 'Charlie'
 
 type parsedElement struct {
 	Type  string
@@ -24,8 +20,7 @@ type parsedElement struct {
 	Size  int
 }
 
-
-
+// parses_array parses arrays in RESP format
 func parse_array(raw []byte) (parsedElement, []byte, error) {
 	arraySizeOffset := get_offset(raw)
 	arraySize, err := strconv.Atoi(string(raw[:arraySizeOffset]))
@@ -54,10 +49,10 @@ func parse_array(raw []byte) (parsedElement, []byte, error) {
 		Value: arrayElements,
 		Size:  len(arrayElements),
 	}
-	fmt.Println(parsed)
 	return parsed, raw, nil
 }
 
+// parse_bulk_string parses bulk strings in RESP format
 func parse_bulk_string(raw []byte) (parsedElement, []byte, error) {
 	bulkSizeOffset := get_offset(raw)
 	bulkSize, err := strconv.Atoi(string(raw[:bulkSizeOffset]))
@@ -82,15 +77,8 @@ func parse_bulk_string(raw []byte) (parsedElement, []byte, error) {
 	return parsed, raw, nil
 
 }
-func get_offset(raw []byte) int {
-	for i := 0; i < len(raw); i++ {
-		if raw[i] == '\r' && raw[i+1] == '\n' {
-			return i
-		}
-	}
-	return -1
-}
 
+// parse_string parses strings in RESP format
 func parse_string(raw []byte) (parsedElement, []byte, error) {
 	offset := get_offset(raw)
 	if offset == -1 {
@@ -105,6 +93,23 @@ func parse_string(raw []byte) (parsedElement, []byte, error) {
 	return parsed, raw, nil
 }
 
+// parse_error parses errors in RESP format
+func parse_error(raw []byte) (parsedElement, []byte, error) {
+	offset := get_offset(raw)
+	if offset == -1 {
+		return parsedElement{}, raw, fmt.Errorf("invalid error")
+	}
+	parsed := parsedElement{
+		Type:  "error",
+		Value: string(raw[:offset]),
+		Size:  offset,
+	}
+	raw = raw[offset+2:]
+	return parsed, raw, nil
+}
+
+
+// parse_integer parses integers in RESP format
 func parse_integer(raw []byte) (parsedElement, []byte, error) {
 	offset := get_offset(raw)
 		if offset == -1 {
@@ -123,20 +128,18 @@ func parse_integer(raw []byte) (parsedElement, []byte, error) {
 	return parsed, raw, err
 }
 
-func parse_error(raw []byte) (parsedElement, []byte, error) {
-	offset := get_offset(raw)
-	if offset == -1 {
-		return parsedElement{}, raw, fmt.Errorf("invalid error")
+
+// get_offset is a helper function to get the offset of the CRLF sequence of the raw bytes
+func get_offset(raw []byte) int {
+	for i := 0; i < len(raw); i++ {
+		if raw[i] == '\r' && raw[i+1] == '\n' {
+			return i
+		}
 	}
-	parsed := parsedElement{
-		Type:  "error",
-		Value: string(raw[:offset]),
-		Size:  offset,
-	}
-	raw = raw[offset+2:]
-	return parsed, raw, nil
+	return -1
 }
 
+// parse_all parses a single RESP element such as string, integer, bulkstring, array and error of the raw bytes
 func parse_all(raw []byte) (parsedElement, []byte, error) {
 	if len(raw) == 0 {
 		return parsedElement{}, raw, fmt.Errorf("No data to parse")
@@ -155,9 +158,10 @@ func parse_all(raw []byte) (parsedElement, []byte, error) {
 	case '-':
 		return parse_error(raw)
 	}
-	return parsedElement{}, raw, nil
+	return parsedElement{}, raw, fmt.Errorf("Unknown type: %c", typeByte)
 }
 
+// ParseAll parses all RESP elements from the raw string
 func ParseAll(raw string) ([]parsedElement, []byte, error) {
 	rawBytes := []byte(raw)
 	parsed, leftover, err := parse_all(rawBytes)
@@ -176,10 +180,12 @@ func ParseAll(raw string) ([]parsedElement, []byte, error) {
 		parsedElements = append(parsedElements, parsed)
 
 	}
-	// fmt.Println(parsedElements)
 	return parsedElements, leftover, nil
 }
 
+
+
+// ParseVerbose parses RESP string using ParseAll function and return a verbose representation of the parsed elements.
 func ParseVerbose(raw string) (string, error){
 	parsedElements, leftover, err := ParseAll(raw)
 	if err !=nil{
@@ -204,6 +210,7 @@ func ParseVerbose(raw string) (string, error){
 	return result, nil
 }
 
+// parse_array_verbose is a helper function that parses a nested array element and returns a verbose string representation of it.
 func parse_array_verbose(array parsedElement, level int) (string, error) {
 	var result string
 	for i, element := range array.Value.([]parsedElement) {

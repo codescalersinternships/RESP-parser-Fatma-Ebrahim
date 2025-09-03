@@ -14,7 +14,7 @@ func main() {
 	raw := "*3\r\n$3\r\nset\r\n$6\r\nleader\r\n$7\r\nCharlie\r\n"
 	raw += "*4\r\n$3\r\nset\r\n$8\r\nfollower\r\n*2\r\n$8\r\nfollower\r\n$6\r\nSkyler\r\n:1000\r\n"	
 
-	raw = "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n"
+	raw = "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n#<t|f>\r\n"
 	
 
 	parsed, leftover, err := parser.ParseAll(raw)

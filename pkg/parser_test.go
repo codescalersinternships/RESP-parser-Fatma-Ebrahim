@@ -30,6 +30,31 @@ func TestParseString(t *testing.T) {
 	})
 }
 
+func TestParseError(t *testing.T) {
+	t.Run("test errors", func(t *testing.T) {
+		raw := "-Error message\r\n"
+		parsed, leftover, err := ParseAll(raw)
+		if err != nil {
+			t.Errorf("Error in ParseAll:%v", err)
+		}
+		if len(leftover) != 0 {
+			t.Errorf("Expected 0 leftover bytes got %d", len(leftover))
+		}
+		if len(parsed) != 1 {
+			t.Errorf("Expected 1 element got %d", len(parsed))
+		}
+
+		parsedElement := parsed[0]
+		if parsedElement.Type != "error" {
+			t.Errorf("Expected error type got %s", parsedElement.Type)
+		}
+		if parsedElement.Value != "Error message" {
+			t.Errorf("Expected error value 'Error message' got %s", parsedElement.Value)
+		}
+
+	})
+}
+
 func TestParseInteger(t *testing.T) {
 	t.Run("test integers", func(t *testing.T) {
 		raw := ":1000\r\n"
@@ -77,7 +102,7 @@ func TestParseInteger(t *testing.T) {
 
 }
 
-func TestParseBulkString( t *testing.T) {
+func TestParseBulkString(t *testing.T) {
 	t.Run("test empty bulk string", func(t *testing.T) {
 		raw := "$0\r\n\r\n"
 		parsed, leftover, err := ParseAll(raw)
@@ -125,7 +150,7 @@ func TestParseBulkString( t *testing.T) {
 
 }
 
-func TestParseArray(t *testing.T){
+func TestParseArray(t *testing.T) {
 	t.Run("test empty array ", func(t *testing.T) {
 		raw := "*0\r\n"
 		parsed, leftover, err := ParseAll(raw)
@@ -179,7 +204,7 @@ func TestParseArray(t *testing.T){
 			t.Errorf("Expected null array got %v", parsedElement.Value)
 		}
 	})
-	
+
 }
 
 func TestParseAll(t *testing.T) {
@@ -205,6 +230,30 @@ func TestParseAll(t *testing.T) {
 		if parsedElement.Size != 3 {
 			t.Errorf("Expected 3 elements in array got %d", parsedElement.Size)
 		}
+	})
+
+	t.Run(("test unknown types"), func(t *testing.T) {
+		raw := "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n,1.23\r\n"
+		parsed, _, err := ParseAll(raw)
+		if err.Error() != "Unknown type: ," {
+			t.Errorf("Expected error 'Unknown type: ,' got %v", err)
+		}
+		if len(parsed) != 0 {
+			t.Errorf("Expected 0 parsed elements got %d", len(parsed))
+		}
+
+	})
+
+	t.Run(("test invalid data"), func(t *testing.T) {
+		raw := "*3\r\n$3\r\nset\r\n$8\r\nfollower\r\n"
+		parsed, _, err := ParseAll(raw)
+		if err.Error() != "No data to parse" {
+			t.Errorf("Expected error 'No data to parse' got %v", err)
+		}
+		if len(parsed) != 0 {
+			t.Errorf("Expected 0 parsed elements got %d", len(parsed))
+		}
+
 	})
 
 }
