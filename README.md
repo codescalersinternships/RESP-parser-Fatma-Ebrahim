@@ -7,15 +7,15 @@ This repository contains an implementation of a Go library for parsing Redis Ser
 Parses RESP elements from the raw string and return an array of the parsed elements.
 ### `ParseVerbose(raw string) (string, error)` 
 Parses RESP elements and return a verbose string of the parsed elements.
-### `StringToRESPBulkString(s string) (string, error)`
+### `StringToRESPBulkString(s string) string`
 Encodes a string to a RESP bulk string.
-### `StringToRESPString(s string) (string, error)`
+### `StringToRESPString(s string) string`
 Encodes a string to a RESP simple string.
-### `ErrorToRESPError(err error) (string, error)`
+### `ErrorToRESPError(err error) string`
 Encodes an error to a RESP error.
-### `IntegerToRESPInteger(i int) (string, error)`
+### `IntegerToRESPInteger(i int) string`
 Encodes an integer to a RESP integer.
-### `ArrayToRESPArray(arr []interface{}) (string, error)`
+### `ArrayToRESPArray(arr []interface{}) string`
 Encodes an array to a RESP array.
 
 ## How to Use:
